@@ -116,16 +116,16 @@ func (mFile *mmapFileImpl) Unlock() {
 	mFile.lock.Unlock()
 }
 
-func (mFile *mmapFileImpl) Seek(pos int, from fs.FileOffset) {
+func (mFile *mmapFileImpl) Seek(pos int, from gofs.FileOffset) {
 	switch from {
-	case fs.Beginning:
+	case gofs.Beginning:
 		mFile.pos = pos
-	case fs.Current:
+	case gofs.Current:
 		mFile.pos = pos + pos
-	case fs.End:
+	case gofs.End:
 		mFile.pos = mFile.mapSize - pos
 	}
-	mFile.pos = math.MaxInt(0, math.MinInt(mFile.pos, mFile.mapSize-1))
+	mFile.pos = gomath.MaxInt(0, gomath.MinInt(mFile.pos, mFile.mapSize-1))
 }
 
 func (mFile *mmapFileImpl) Size() int {
@@ -134,7 +134,7 @@ func (mFile *mmapFileImpl) Size() int {
 
 func (mFile *mmapFileImpl) Read(data []byte) (int, error) {
 	start := _HeaderSize + mFile.pos
-	end := math.MinInt(mFile.mapSize, start+len(data))
+	end := gomath.MinInt(mFile.mapSize, start+len(data))
 
 	length := end - start
 
@@ -247,7 +247,7 @@ func (mFile *mmapFileImpl) align(offset int) int {
 /* Constructors */
 
 // NewFile creates a new memory mapped file
-func NewFile(fName string) (fs.File, error) {
+func NewFile(fName string) (gofs.File, error) {
 	var err error
 
 	result := new(mmapFileImpl)
@@ -261,7 +261,7 @@ func NewFile(fName string) (fs.File, error) {
 
 	// Check to see if new
 	info, _ := os.Stat(fName)
-	result.mapSize = math.MaxInt(_InitialSize, int(info.Size()))
+	result.mapSize = gomath.MaxInt(_InitialSize, int(info.Size()))
 
 	if info.Size() == 0 {
 		result.newFile = true
