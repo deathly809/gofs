@@ -5,10 +5,13 @@
 
 package readers
 
-import "io"
+import (
+    "io"
+ "github.com/deathly809/gofs"   
+)        
 
 type fileReader struct {
-	file File
+	file gofs.File
 }
 
 func (reader *fileReader) Read(p []byte) (int, error) {
@@ -18,7 +21,7 @@ func (reader *fileReader) Read(p []byte) (int, error) {
 
 // NewSafeReader takes in a File object and returns a reader that
 // allows users to write to the file
-func NewSafeReader(f File) io.Reader {
+func NewSafeReader(f gofs.File) io.Reader {
 	result := new(fileReader)
 	result.file = f
 	return result

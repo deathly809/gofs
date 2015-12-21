@@ -8,7 +8,7 @@ package readers
 import (
 	"io"
 
-	"github.com/deathly809/gorapidstash/fs"
+	"github.com/deathly809/gofs"
 )
 
 type fileWriter struct {
@@ -21,7 +21,7 @@ func (writer *fileWriter) Write(data []byte) (written int, err error) {
 
 // NewSafeWriter takes in a File object and returns a writer that
 // allows users to Write to the file
-func NewSafeWriter(f File) io.Writer {
+func NewSafeWriter(f gofs.File) io.Writer {
 	result := new(fileWriter)
 	result.file = f
 	return result

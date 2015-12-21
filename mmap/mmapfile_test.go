@@ -63,7 +63,7 @@ func TestWrite(t *testing.T) {
 	}
 
 	data := make([]byte, len(testData))
-	file.Seek(0, fs.Beginning)
+	file.Seek(0, gofs.Beginning)
 	n, err = file.Read(data)
 
 	if n != len(testData) {
