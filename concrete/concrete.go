@@ -55,7 +55,7 @@ func (f *file) Seek(pos int, off gofs.FileOffset) {
 	switch off {
 	case gofs.Beginning:
 		f.curr = f.head
-	case fs.End:
+	case gofs.End:
 		f.curr = f.head
 	}
 
@@ -117,15 +117,15 @@ const (
 type fileSystemImpl struct {
 	numFiles  int64
 	firstFree fileNode
-	safeFiles map[string]fs.File
+	safeFiles map[string]gofs.File
 	files     map[string]fileInfo
-	mFile     fs.File
+	mFile     gofs.File
 }
 
 func (fSys *fileSystemImpl) readHeader() error {
 	header := make([]byte, _HeaderSize)
 
-	fSys.mFile.Seek(0, fs.Beginning)
+	fSys.mFile.Seek(0, gofs.Beginning)
 	fSys.mFile.Read(header)
 
 	buffer := bytes.NewReader(header)
@@ -151,11 +151,11 @@ func (fSys *fileSystemImpl) readHeader() error {
 	return nil
 }
 
-func (fSys *fileSystemImpl) GetSafeWriter(file fs.File) io.Writer {
+func (fSys *fileSystemImpl) GetSafeWriter(file gofs.File) io.Writer {
 	return nil
 }
 
-func (fSys *fileSystemImpl) GetSafeReader(file fs.File) io.Reader {
+func (fSys *fileSystemImpl) GetSafeReader(file gofs.File) io.Reader {
 	return nil
 }
 
@@ -163,11 +163,11 @@ func (fSys *fileSystemImpl) Shutdown() {
 
 }
 
-func (fSys *fileSystemImpl) Lock(file fs.File) {
+func (fSys *fileSystemImpl) Lock(file gofs.File) {
 
 }
 
-func (fSys *fileSystemImpl) Unlock(file fs.File) {
+func (fSys *fileSystemImpl) Unlock(file gofs.File) {
 
 }
 
@@ -175,7 +175,7 @@ func (fSys *fileSystemImpl) GetWriter() io.Writer {
 	return nil
 }
 
-func (fSys *fileSystemImpl) Open(filename string) fs.File {
+func (fSys *fileSystemImpl) Open(filename string) gofs.File {
 	return nil
 }
 
@@ -187,9 +187,9 @@ func (fSys *fileSystemImpl) Delete(filename string) {
 	info, exists := fSys.files[filename]
 	// Remove from list of files,
 	if exists {
-		fSys.Lock(filename)
+		//fSys.Lock(filename)
 		info.pos = 0
-		fSys.Unlock(filename)
+		//fSys.Unlock(filename)
 	}
 }
 
@@ -206,7 +206,7 @@ func (fSys *fileSystemImpl) getBlock() *fileNode {
 }
 
 // Open creates the default filesystem
-func Open(filename string) (fs.FileSystem, error) {
+func Open(filename string) (gofs.FileSystem, error) {
 	var err error
 
 	result := new(fileSystemImpl)
