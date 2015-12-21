@@ -5,8 +5,8 @@ package concrete
 
 import (
 	"bytes"
-	"dfs/fs"
-	"dfs/fs/mmap"
+	"github.com/deathly809/gofs"
+	"github.com/deathly809/gofs/mmap"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -51,9 +51,9 @@ func (f *file) Read(data []byte) (n int, err error) {
 	return 0, nil
 }
 
-func (f *file) Seek(pos int, off fs.FileOffset) {
+func (f *file) Seek(pos int, off gofs.FileOffset) {
 	switch off {
-	case fs.Beginning:
+	case gofs.Beginning:
 		f.curr = f.head
 	case fs.End:
 		f.curr = f.head

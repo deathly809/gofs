@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/deathly809/gorapidstash/fs"
+	"github.com/deathly809/gofs"
 )
 
 const (

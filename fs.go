@@ -1,5 +1,5 @@
 
-package fs
+package gofs
 
 import (
 	"time"

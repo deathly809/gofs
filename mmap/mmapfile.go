@@ -4,21 +4,21 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"jeff/common"
-	"jeff/math"
+	"github.com/deathly809/gomath"
+    "github.com/deathly809/goassert"
 	"log"
 	"os"
 	"sync"
 	"unsafe"
 
-	"dfs/fs"
+	"github.com/deathly809/gofs"
 
 	"github.com/edsrzf/mmap-go"
 )
 
 // File represents a File which is mapped to some place in memory
 type File interface {
-	fs.File
+	gofs.File
 	// Bytes returns the underlying memory that the file backs
 	// If you want to use this you will need to lock the file
 	// before
@@ -284,9 +284,9 @@ func NewFile(fName string) (fs.File, error) {
 
 		head := result.readHeader()
 
-		common.Assert(bytes.Equal(head.sanity, _Sanity), "Sanity check failed '"+string(head.sanity)+"'")
-		common.Assert(head.ver == _Version, "Versions do not match: ", head.ver, " vs. ", _Version)
-		common.Assert(int(head.mSize) == result.mapSize, fName+": Sizes do not match: ", head.mSize, result.mapSize)
+		goassert.Assert(bytes.Equal(head.sanity, _Sanity), "Sanity check failed '"+string(head.sanity)+"'")
+		goassert.Assert(head.ver == _Version, "Versions do not match: ", head.ver, " vs. ", _Version)
+		goassert.Assert(int(head.mSize) == result.mapSize, fName+": Sizes do not match: ", head.mSize, result.mapSize)
 
 	} else {
 		result.writeHeader()
