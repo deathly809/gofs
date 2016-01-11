@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/deathly809/gomath"
-    "github.com/deathly809/goassert"
 	"log"
 	"os"
 	"sync"
 	"unsafe"
+
+	"github.com/deathly809/goassert"
+	"github.com/deathly809/gomath"
 
 	"github.com/deathly809/gofs"
 

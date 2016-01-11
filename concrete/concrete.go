@@ -1,87 +1,27 @@
 // The concrete package contains concrete implementations
 // of the FileSystem interface.
 
+// There are two files used by the concrete file system
+// The first file contains all the names of the files and their locations
+// The second file contains the file data
+
 package concrete
 
 import (
-	"bytes"
+	"io"
+
 	"github.com/deathly809/gofs"
 	"github.com/deathly809/gofs/mmap"
-	"encoding/binary"
-	"errors"
-	"fmt"
-	"io"
-	"time"
 )
 
 // Each file in the FileSystem is represented by a linked
-// list structure
+// list structure.  This is the order they are physically
+// written
 type fileNode struct {
-	data []byte
-	next *fileNode
-	prev *fileNode
-}
-
-// This is the header for each file in the filesystem
-type fileInfo struct {
-	pos          int
-	size         int
-	first        *fileNode
-	created      time.Time
-	lastModified time.Time
-}
-
-type file struct {
-	fs   *fileSystemImpl
-	pos  int
-	head *fileNode
-	curr *fileNode
-	end  *fileNode
-}
-
-func (f *file) Close() error {
-	return nil
-}
-
-func (f *file) Write(data []byte) (n int, err error) {
-	return 0, nil
-}
-
-func (f *file) Read(data []byte) (n int, err error) {
-	return 0, nil
-}
-
-func (f *file) Seek(pos int, off gofs.FileOffset) {
-	switch off {
-	case gofs.Beginning:
-		f.curr = f.head
-	case gofs.End:
-		f.curr = f.head
-	}
-
-	if pos < 0 { // Back
-		if f.curr.prev == nil {
-			t := f.fs.getBlock()
-			t.next = f.curr
-			f.curr.prev = t
-			t.next = f.curr
-			f.curr = t
-		}
-	} else { // Forward
-
-	}
-}
-
-func (f *file) IsNew() bool {
-	return false
-}
-
-func (f *file) Name() string {
-	return ""
-}
-
-func (f *file) Size() int {
-	return 0
+	id   int64
+	prev int64  // We _PointerSize
+	next int64  // _PointerSize
+	data []byte // _BlockSize - 2 * _PointerSize
 }
 
 const (
@@ -113,42 +53,42 @@ const (
 	_HeaderSize = _SignatureSize + _VersionBytes + _FileCountBytes + _SizeBytes + _FirstFreeBytes
 )
 
+// Each entry contains these values
+const (
+	_NameLength       = 2
+	_NameSize         = 256
+	_LengthSize       = 8
+	_FirstSize        = 8
+	_LastSize         = 8
+	_LastModifiedSize = 8
+	_CreatedSize      = 8
+
+	_EntrySize = _NameLength + _NameSize + _LengthSize + _FirstSize + _LastSize + _LastModifiedSize + _CreatedSize
+)
+
+// Data block values
+const (
+	// Used to grab a new block
+	_NullIndex   = -1
+	_BlockSize   = 4096
+	_PointerSize = 8
+	_DataSize    = _BlockSize - 2*_PointerSize
+)
+
 // The actual implementation
 type fileSystemImpl struct {
-	numFiles  int64
-	firstFree fileNode
-	safeFiles map[string]gofs.File
-	files     map[string]fileInfo
-	mFile     gofs.File
-}
-
-func (fSys *fileSystemImpl) readHeader() error {
-	header := make([]byte, _HeaderSize)
-
-	fSys.mFile.Seek(0, gofs.Beginning)
-	fSys.mFile.Read(header)
-
-	buffer := bytes.NewReader(header)
-
-	signature := make([]byte, _SignatureSize)
-	buffer.Read(signature)
-
-	var major, minor, patch int32
-	binary.Read(buffer, binary.BigEndian, &major)
-	binary.Read(buffer, binary.BigEndian, &minor)
-	binary.Read(buffer, binary.BigEndian, &patch)
-
-	if major != Major {
-		msg := fmt.Sprintf("Trying to load an incompatible filesystem version: %d.%d.%d", major, minor, patch)
-		return errors.New(msg)
-	}
-
-	var numFiles, size, firstFree int32
-	binary.Read(buffer, binary.BigEndian, &numFiles)
-	binary.Read(buffer, binary.BigEndian, &size)
-	binary.Read(buffer, binary.BigEndian, &firstFree)
-
-	return nil
+	numFiles         int64                // number of files in the filesystem
+	sizeInBytes      int64                // the total number of bytes that the files take up
+	indexOfFirstFree int64                // the index of the first free node
+	indexOfLastFree  int64                // the index of the last free node
+	numberFreeNodes  int64                // The number of nodes on the free list
+	safeFiles        map[string]gofs.File // the list of files which are locked
+	files            map[string]fileInfo  // the list of files in the file system
+	dataFile         mmap.File            // the data file
+	nameFile         mmap.File            // the name file
+	fsName           string               // name of the file system
+	fsDirectory      string               // directory where stored on disk
+	rawData          []byte               // underlying data
 }
 
 func (fSys *fileSystemImpl) GetSafeWriter(file gofs.File) io.Writer {
@@ -188,34 +128,15 @@ func (fSys *fileSystemImpl) Delete(filename string) {
 	// Remove from list of files,
 	if exists {
 		//fSys.Lock(filename)
-		info.pos = 0
+		delete(fSys.files, filename)
 		//fSys.Unlock(filename)
+
+		// add the file to the free list
+		// fSys.Lock("freelist")
+		block := fSys.getBlock(info.last)
+		block.next = fSys.indexOfFirstFree
+		fSys.indexOfFirstFree = info.first
+		// fSys.UnLock("freelist")
+
 	}
-}
-
-// Initializes the filesystem after the MMAPFile has been
-// opened
-func (fSys *fileSystemImpl) init() error {
-	//	Read filesystem header
-	err := fSys.readHeader()
-	return err
-}
-
-func (fSys *fileSystemImpl) getBlock() *fileNode {
-	return nil
-}
-
-// Open creates the default filesystem
-func Open(filename string) (gofs.FileSystem, error) {
-	var err error
-
-	result := new(fileSystemImpl)
-
-	result.mFile, err = mmap.NewFile(filename)
-
-	if err != nil {
-		return nil, errors.New("Could not open filesystem: " + err.Error())
-	}
-
-	return result, nil
 }

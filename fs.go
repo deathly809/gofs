@@ -1,4 +1,3 @@
-
 package gofs
 
 import (
@@ -64,7 +63,7 @@ type File interface {
 	//	If the resuting position is out of bounds it is clamped to
 	//	either the beginning or the end of the file.
 	//
-	Seek(int, FileOffset)
+	Seek(int64, int) (int64, error)
 
 	//	IsNew returns true if this file was created during opening.
 	IsNew() bool
