@@ -39,7 +39,7 @@ var _Sanity = []byte{0x0, 0x0, 0xd, 0x1, 0xe, 0x5, 0x0, 0xf, 0xd, 0x0, 0x0, 0xd,
 const (
 	_Version     byte = byte(1)
 	_MaxFileSize      = 1000000000
-	_HeaderSize       = int(unsafe.Sizeof(_Version)+unsafe.Sizeof(1)) + 16
+	_HeaderSize       = int64(unsafe.Sizeof(_Version)+unsafe.Sizeof(1)) + 16
 	_InitialSize      = 4096 + _HeaderSize
 )
 
@@ -53,12 +53,12 @@ type header struct {
 
 type mmapFileImpl struct {
 	memmap  mmap.MMap // mFile is just []byte
-	mapSize int
+	mapSize int64
 	newFile bool
 	file    *os.File
 	lock    *sync.Mutex
 	name    string
-	pos     int
+	pos     int64
 }
 
 /* Required for interface */
@@ -88,7 +88,7 @@ func (mFile *mmapFileImpl) Close() error {
 
 func (mFile *mmapFileImpl) Write(data []byte) (int, error) {
 	start := mFile.pos + _HeaderSize
-	end := start + len(data)
+	end := start + int64(len(data))
 
 	mFile.lock.Lock()
 	if end > mFile.mapSize {
@@ -117,25 +117,26 @@ func (mFile *mmapFileImpl) Unlock() {
 	mFile.lock.Unlock()
 }
 
-func (mFile *mmapFileImpl) Seek(pos int, from gofs.FileOffset) {
+func (mFile *mmapFileImpl) Seek(pos int64, from int) (int64,error){
 	switch from {
-	case gofs.Beginning:
+	case os.SEEK_SET:
 		mFile.pos = pos
-	case gofs.Current:
+	case os.SEEK_CUR:
 		mFile.pos = pos + pos
-	case gofs.End:
+	case os.SEEK_END:
 		mFile.pos = mFile.mapSize - pos
 	}
-	mFile.pos = gomath.MaxInt(0, gomath.MinInt(mFile.pos, mFile.mapSize-1))
+	mFile.pos = gomath.MaxInt64(0, gomath.MinInt64(mFile.pos, mFile.mapSize-1))
+    return mFile.pos,nil
 }
 
-func (mFile *mmapFileImpl) Size() int {
+func (mFile *mmapFileImpl) Size() int64 {
 	return mFile.mapSize
 }
 
 func (mFile *mmapFileImpl) Read(data []byte) (int, error) {
 	start := _HeaderSize + mFile.pos
-	end := gomath.MinInt(mFile.mapSize, start+len(data))
+	end := gomath.MinInt64(mFile.mapSize, start+int64(len(data)))
 
 	length := end - start
 
@@ -147,7 +148,7 @@ func (mFile *mmapFileImpl) Read(data []byte) (int, error) {
 		log.Fatal("File too large")
 	}
 
-	check := copy(data, mFile.memmap[start:])
+	check := int64(copy(data, mFile.memmap[start:]))
 
 	if check != length {
 		log.Fatal("Could not read entire length")
@@ -156,7 +157,7 @@ func (mFile *mmapFileImpl) Read(data []byte) (int, error) {
 	// Moved on
 	mFile.pos = end
 
-	return length, nil
+	return int(length), nil
 }
 
 // IsNew returns true if this file was new when created, otherwise
@@ -172,7 +173,7 @@ func (mFile *mmapFileImpl) Name() string {
 
 /* Required to work */
 
-func (mFile *mmapFileImpl) grow(newSize int) {
+func (mFile *mmapFileImpl) grow(newSize int64) {
 	// Get the new size
 	mFile.mapSize = newSize
 
@@ -182,7 +183,7 @@ func (mFile *mmapFileImpl) grow(newSize int) {
 	mFile.memmap = nil
 
 	// Grow the file
-	mFile.file.Truncate(int64(mFile.mapSize))
+	mFile.file.Truncate(mFile.mapSize)
 
 	var err error
 
@@ -196,7 +197,7 @@ func (mFile *mmapFileImpl) grow(newSize int) {
 		log.Fatal("Could not resize file, handle gracefully later(2)")
 	}
 
-	if len(mFile.memmap) != mFile.mapSize {
+	if int64(len(mFile.memmap)) != mFile.mapSize {
 		log.Fatal("Backing mapped array not same size")
 	}
 
@@ -251,7 +252,7 @@ func (mFile *mmapFileImpl) align(offset int) int {
 func NewFile(fName string) (gofs.File, error) {
 	var err error
 
-	result := new(mmapFileImpl)
+	result := &mmapFileImpl{}
 	result.name = fName
 
 	// Create/Open file
@@ -262,7 +263,7 @@ func NewFile(fName string) (gofs.File, error) {
 
 	// Check to see if new
 	info, _ := os.Stat(fName)
-	result.mapSize = gomath.MaxInt(_InitialSize, int(info.Size()))
+	result.mapSize = gomath.MaxInt64(_InitialSize, info.Size())
 
 	if info.Size() == 0 {
 		result.newFile = true
@@ -287,7 +288,7 @@ func NewFile(fName string) (gofs.File, error) {
 
 		goassert.Assert(bytes.Equal(head.sanity, _Sanity), "Sanity check failed '"+string(head.sanity)+"'")
 		goassert.Assert(head.ver == _Version, "Versions do not match: ", head.ver, " vs. ", _Version)
-		goassert.Assert(int(head.mSize) == result.mapSize, fName+": Sizes do not match: ", head.mSize, result.mapSize)
+		goassert.Assert(head.mSize == result.mapSize, fName+": Sizes do not match: ", head.mSize, result.mapSize)
 
 	} else {
 		result.writeHeader()

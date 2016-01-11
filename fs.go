@@ -72,5 +72,5 @@ type File interface {
 	Name() string
 
 	// Size returns the size of the file in bytes
-	Size() int
+	Size() int64
 }
