@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/deathly809/gofs"
 )
 
 const (
@@ -63,7 +61,7 @@ func TestWrite(t *testing.T) {
 	}
 
 	data := make([]byte, len(testData))
-	file.Seek(0, gofs.Beginning)
+	file.Seek(0, os.SEEK_SET)
 	n, err = file.Read(data)
 
 	if n != len(testData) {

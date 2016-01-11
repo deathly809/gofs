@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path"
 	"time"
+    "os"
 
 	"github.com/deathly809/goassert"
 	"github.com/deathly809/gofs"
@@ -25,7 +26,7 @@ func (fSys *fileSystemImpl) readHeader() error {
 
 	buffer := bytes.NewReader(header)
 
-	fSys.nameFile.Seek(0, gofs.Beginning)
+	fSys.nameFile.Seek(0, os.SEEK_SET)
 	if n, err := fSys.nameFile.Read(header); err != nil {
 		return err
 	} else if n != _HeaderSize {
@@ -202,14 +203,14 @@ func (fSys *fileSystemImpl) growBy(bytes int64) {
 	finalSize := fSys.dataFile.Size() + bytes
 
 	fSys.indexOfFirstFree = fSys.dataFile.Size()
-	fSys.dataFile.Seek(int(_BlockSize*1024), gofs.End)
+	fSys.dataFile.Seek(_BlockSize*1024, os.SEEK_END)
 	fSys.dataFile.Write([]byte{0})
 
 	underlying := fSys.dataFile.Bytes()[beginSize:]
 	for i := beginSize; i < finalSize; i += _BlockSize {
 		curr := rawRead(underlying)
 
-		underlying[_BlockSize:]
+		underlying = underlying[_BlockSize:]
 	}
 }
 
